@@ -1,0 +1,41 @@
+-- |{-# LANGUAGE OverloadedStrings          #-}
+-- | {-# LANGUAGE DeriveGeneric              #-}
+-- | {-# LANGUAGE DeriveAnyClass             #-}
+-- | {-# LANGUAGE FlexibleContexts           #-}
+-- | {-# LANGUAGE GeneralisedNewtypeDeriving #-}
+-- | {-# LANGUAGE RecordWildCards            #-}
+-- | {-# LANGUAGE DuplicateRecordFields      #-}
+
+module Ride.Client.Class where
+
+-- import Control.Monad.Except (MonadError)
+-- import Data.Aeson (ToJSON, FromJSON, parseJSON, toJSON, object, withObject, (.:), (.=))
+-- import Data.Aeson.TH (deriveJSON, defaultOptions, fieldLabelModifier, constructorTagModifier)
+-- import Data.UUID (UUID)
+-- import Data.UUID.V4 (nextRandom)
+-- import Database.PostgreSQL.Simple.FromRow (FromRow)
+-- import Ride.App (AppError)
+-- import Ride.Shared.Types (Id (..))
+-- import Ride.Shared.Utils (commonDeriveJSON, lowerCaseFirst)
+
+-- data Client = Client 
+--   { clientId :: Id Client
+--   , name     :: Text
+--   } deriving (Show, Generic, FromJSON, ToJSON, FromRow)
+
+-- -- | Create Client
+
+-- data CreateClient = CreateClient
+--   { clientName    :: Text
+--   , adminEmail    :: Text
+--   , adminPassword :: Text
+--   , adminName     :: Text
+--   } deriving (Show, Generic, FromJSON)
+
+-- data ClientError = InvalidName | InvalidSomething
+--   deriving (Show, Exception)
+
+-- createClient :: (MonadIO m, MonadError AppError m) => CreateClient -> m (Either ClientError Client)
+-- createClient CreateClient {..} = do
+--   clientId <- liftIO nextRandom
+--   pure $ Right $ Client (Id clientId) clientName

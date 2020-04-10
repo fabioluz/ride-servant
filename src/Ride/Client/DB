@@ -1,0 +1,29 @@
+-- | {-# LANGUAGE OverloadedStrings #-}
+-- | {-# LANGUAGE FlexibleContexts  #-}
+-- | {-# LANGUAGE RecordWildCards   #-}
+
+module Ride.Client.DB where
+
+-- import Database.PostgreSQL.Simple (Query (..), query_, execute)
+-- import Ride.App (WithLogger, logInfo)
+-- import Ride.DB (WithDb, withConn)
+-- import Ride.Client.Class (Client (..))
+-- import Ride.User.Class (User (..))
+-- import Ride.Shared.Types (Id (..))
+
+-- getClients :: (WithDb env m) => m [Client]
+-- getClients = withConn $ \conn -> query_ conn sql
+--   where
+--     sql = "SELECT client_id, name FROM clients"
+
+-- insertClient :: (WithDb env e m) => Client -> User -> m Int64
+-- insertClient client user = withTran $ \conn -> do
+--   a <- execute conn clientSql $ clientValues client
+--   b <- execute conn userSql $ userValues user
+--   pure $ a + b
+--   where
+--     clientSql = "INSERT INTO clients (client_id, name) VALUES (?, ?)" 
+--     clientValues Client {..} = (unId clientId, name)
+
+--     userSql = "INSERT INTO users (user_id, client_id, email, password, name) VALUES (?, ?, ?, ?, ?"
+--     userValues User {..} = (unId userId, unId clientId, email, password, name)
