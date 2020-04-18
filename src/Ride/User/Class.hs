@@ -10,16 +10,19 @@
 module Ride.User.Class
 ( User (..)
 , UserError (..)
-, CreateUserInput (..)
+, CreateUser (..)
+, UpdateUser (..)
+, ValidUpdateUser (..)
 , createUser
+, updateUser
 ) where
 
 import Control.Monad.Except (throwError)
-import Data.Aeson (FromJSON, ToJSON, toJSON, object, (.=))
-import Data.Validation (Validation (..), liftError)
+import Data.Aeson (Value, FromJSON, ToJSON, toJSON, encode, object, (.=))
+import Data.Validation (Validation (..), liftError, validation)
 import Database.PostgreSQL.Simple.FromRow (FromRow, fromRow, field)
-import Ride.App (AppError (..), WithError)
-import Ride.Shared.Types
+import Ride.Error (GeneralError (..), ValidationError (..))
+import Ride.Shared.Types 
   ( Id 
   , Email
   , EmailError
@@ -35,115 +38,139 @@ import Ride.Shared.Validators.Text
   , minLength
   )
 
+import qualified Data.HashMap.Strict as HM
+
 -- | Represents the User entity in the application and database.
+-- | This type does not contain password information.
+-- | It is used for all user operations.
 data User = User 
   { userId   :: Id User
   , email    :: Email
-  , password :: Password
   , name     :: Text
-  } deriving (Show, Generic, FromRow)
+  } deriving (Show, Generic, ToJSON, FromRow)
 
 -- | Represents the input format for creating an user from an HTTP request.
-data CreateUserInput = CreateUserInput
+data CreateUser = CreateUser
   { email    :: Text
   , password :: Text
   , name     :: Text
   } deriving (Show, Generic, FromJSON)
 
--- | Represents all possible errors when creating an user.
-data UserError 
-  = InvalidEmail EmailError
-  | InvalidPassword TextError
-  | InvalidName TextError
-  deriving Show
-
--- | Validates the user input, hashes the password, generates a new UUID and returns an User Entity.
--- | If any of the steps fail, it throws an error which will be turned into an HTTP 422/500 response by Servant
-createUser :: WithError m => CreateUserInput -> m User
-createUser input = do
-  validUser <- validateUser input
-  hashedPwd <- hashPassword $ validPwd validUser
-  userId    <- genNewId
-  pure $ User
-   { userId
-   , password = hashedPwd
-   , email = validEmail validUser
-   , name = validName validUser
-   }
-
--- | Validates the user input and returns ValidCreateUserInput. Throws ValidationError if validation fails.
--- | ValidationError will be turned into HTTP 422 response by Servant.
--- | HashedPassword and UserId requires IO and cannot be provided at this stage.
-validateUser :: WithError m => CreateUserInput -> m ValidCreateUserInput
-validateUser input = do
-  validationRes <- pure $ validateCreateUser input
-  case validationRes of
-    Failure errs -> throwError $ validationError errs
-    Success user -> pure user 
-
--- | Hashes the password using BCrypt. Throws an AppError in case the hashing fails (if possible?) 
-hashPassword :: WithError m => Text -> m Password
-hashPassword password = do
-  hashRes <- liftIO $ createPassword password
-  case hashRes of
-    Nothing  -> throwError $ appError "error while hashing password"
-    Just pwd -> pure pwd
-
--- | Generates a new UUID for User
-genNewId :: WithError m => m (Id User)
-genNewId = liftIO newId
-
--- | Validation
-
-type ValidationUser a = Validation (NonNull [UserError]) a
-
 -- | Represents a validated input for creating an user
 -- | It serves as a base for generating Password and Id User, which require IO
-data ValidCreateUserInput = ValidCreateUserInput
-  { validEmail :: Email
-  , validPwd   :: Text
-  , validName  :: Text
+data ValidCreateUser = ValidCreateUser
+  { createUserEmail    :: Email
+  , createUserPassword :: Text
+  , createUserName     :: Text
   }
 
+-- | Represents the input format for updating an user from an HTTP request.
+data UpdateUser = UpdateUser
+  { email :: Text
+  , name  :: Text
+  } deriving (Show, Generic, FromJSON)
+
+-- | Represents a validated input for updating an user.
+data ValidUpdateUser = ValidUpdateUser
+  { updateUserEmail :: Email
+  , updateUserName  :: Text
+  }
+
+-- | Validates the user input, hashes the password, generates a new UUID and returns an User entity and Password.
+-- | If any of the steps fail, it throws an error which will be turned into an HTTP 422/500 response by Servant.
+createUser :: MonadIO m => CreateUser -> m (User, Password)
+createUser input = do
+  validUser <- validateCreateUser input
+  password  <- hashPassword $ createUserPassword validUser
+  userId    <- genNewId
+  let email = createUserEmail validUser
+      name  = createUserName validUser
+      user  = User {..}
+  pure $ (User {..}, password)
+
+-- | Validates the user input and returns an User entity.
+-- | If any of the steps fail, it throws an error which will be turned into an HTTP 422/500 response by Servant
+updateUser :: MonadIO m => Id User -> UpdateUser -> m User
+updateUser userId input = do
+  validUser <- validateUpdateUser input
+  let email = updateUserEmail validUser
+      name  = updateUserName validUser
+  pure $ User {..}
+
+-- | Hashes the password using BCrypt. Throws an GeneralError in case the hashing fails (if possible?) 
+hashPassword :: MonadIO m => Text -> m Password
+hashPassword password = do
+  hashResult <- liftIO $ createPassword password
+  either (throwIO . generalError) pure hashResult
+
+-- | Generates a new UUID for User
+genNewId :: MonadIO m => m (Id User)
+genNewId = liftIO newId
+
+-- |
+-- | Validation 
+-- |
+
+-- | Validates the user input and returns ValidCreateUser. Throws ValidationError if validation fails.
+-- | ValidationError will be turned into HTTP 422 response by Servant.
+-- | HashedPassword and UserId cannot be provided at this stage.
+validateCreateUser :: MonadIO m => CreateUser -> m ValidCreateUser
+validateCreateUser = validation (throwIO . validationError) pure . validate
+  where
+    -- | Validates CreateUser and collects all the errors by using Applicative Validation.
+    validate :: CreateUser -> Validation UserError ValidCreateUser
+    validate CreateUser {..} = do
+      createUserEmail    <- validateEmail email 
+      createUserPassword <- validatePassword password
+      createUserName     <- validateName name
+      pure ValidCreateUser {..}
+
+-- | Validates the user input and returns ValidUpdateUserInput. Throws ValidationError if validation fails.
+-- | ValidationError will be turned into HTTP 422 response by Servant.
+validateUpdateUser :: MonadIO m => UpdateUser -> m ValidUpdateUser
+validateUpdateUser = validation (throwIO . validationError) pure . validate
+  where
+    -- | Validates UpdateUserInput and collects all the errors by using Applicative Validation.
+    validate :: UpdateUser -> Validation UserError ValidUpdateUser
+    validate UpdateUser {..} = do
+      updateUserEmail <- validateEmail email 
+      updateUserName  <- validateName name
+      pure ValidUpdateUser {..}
+
 -- | Validates the email by calling Email's smart constructor and then maps the result to ValidaitonUser.
-validateEmail :: Text -> ValidationUser Email
-validateEmail = liftError (singleton . InvalidEmail) 
-  . createEmail 
+validateEmail :: Text -> Validation UserError  Email
+validateEmail = liftError emailError . createEmail 
 
 -- | Validates the password using Text validation helpers and then maps the result to ValidaitonUser.
-validatePassword :: Text -> ValidationUser Text
-validatePassword = liftError (singleton . InvalidPassword)
-  . validateText [ minLength 6 ]
+validatePassword :: Text -> Validation UserError Text
+validatePassword = liftError passwordError . validateText [ minLength 6 ]
 
 -- | Validates the name using Text validation helpers and then maps the result to ValidaitonUser.
-validateName :: Text -> ValidationUser Text
-validateName = liftError (singleton . InvalidName)
-  . validateText [ minLength 3 ]
+validateName :: Text -> Validation UserError Text
+validateName = liftError nameError . validateText [ minLength 3 ]
 
--- | Validates CreateUserInput and collects all the  errors by using Applicative Validation.
-validateCreateUser :: CreateUserInput -> ValidationUser ValidCreateUserInput
-validateCreateUser CreateUserInput {..} = do
-  validEmail <- validateEmail email 
-  validPwd   <- validatePassword password
-  validName  <- validateName name
-  pure ValidCreateUserInput {..}
+-- | Type synonym for Validation NonNull (HashMap Text Text)
+-- | It is a non null collection of hash maps - key and error message
+type UserError = NonNull (HashMap Text Text)
 
--- | Error Helpers
+createUserError :: Text -> Text -> UserError
+createUserError key = impureNonNull . HM.singleton key
+
+emailError :: EmailError -> UserError
+emailError = createUserError "email" . tshow
+
+passwordError :: TextError -> UserError
+passwordError = createUserError "password" . tshow
+
+nameError :: TextError -> UserError
+nameError = createUserError "name" . tshow
 
 -- | Converts collection of UserError to ValidationError
-validationError :: NonNull [UserError] -> AppError
-validationError = ValidationError . mapNonNull (pack . show)
+validationError :: UserError -> ValidationError 
+validationError = ValidationError
 
 -- | Constructs AppError
-appError :: LText -> AppError
-appError = AppError
-
--- | User JSON instance should not expose Password
-instance ToJSON User where
-  toJSON User {..} = object
-    [ "userId" .= userId
-    , "email" .= email
-    , "name" .= name
-    ]
+generalError :: Show a => a -> GeneralError
+generalError = GeneralError . tshow 
 
   

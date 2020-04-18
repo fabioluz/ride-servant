@@ -1,8 +1,8 @@
 {-# LANGUAGE TypeOperators #-} 
 
-module Ride.Server where
+module Ride.Server (app) where
 
-import Control.Monad.Except (ExceptT, liftEither)
+import Control.Monad.Except (ExceptT (..), liftEither)
 import Servant 
   ( Application
   , Proxy (..)
@@ -11,23 +11,24 @@ import Servant
   , Handler (..)
   , serve
   , hoistServer
-  ,
   )
-import Ride.App (App, AppT (..), Env, tryRunApp, toServerError)
+import Ride.App (AppT (..), Config)
+import Ride.Error (errorHandlers)
 import Ride.User.Server (UserAPI, userAPI, userServer)
 
-convertApp :: Env -> App a -> Handler a
-convertApp env app = do
-  result <- liftIO $ tryRunApp env app
-  liftEither $ first toServerError result
+runApp :: Config -> AppT IO a -> IO a
+runApp cfg app = runReaderT (unApp app) cfg `catches` (errorHandlers cfg)
 
-clientToServer :: Env -> Server AppAPI
-clientToServer env = hoistServer userAPI (convertApp env) userServer
+convertApp :: Config -> AppT IO a -> Handler a
+convertApp cfg app = Handler . ExceptT . try $ runApp cfg app
+
+clientToServer :: Config -> Server AppAPI
+clientToServer cfg = hoistServer userAPI (convertApp cfg) userServer
 
 type AppAPI = UserAPI
 
 appApi :: Proxy AppAPI
 appApi = Proxy
 
-app :: Env -> Application
-app env = serve appApi (clientToServer env)
+app :: Config -> Application
+app cfg = serve appApi (clientToServer cfg)

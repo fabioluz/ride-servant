@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 252b58a60e54e6fecb52c83d55e2cba4f8f728ddf17f1891d38bb9f20ed0ec4b
+-- hash: 907973cb0f11a8d24421b833a42273e210a77815379f72e12782c87eabfd4520
 
 name:           ride-servant
 version:        0.1.0.0
@@ -30,9 +30,9 @@ library
       Prelude
       Ride.App
       Ride.DB
+      Ride.Error
       Ride.Server
       Ride.Shared.Types
-      Ride.Shared.Utils
       Ride.Shared.Validators.Text
       Ride.User.Class
       Ride.User.DB
@@ -47,6 +47,7 @@ library
     , bcrypt
     , bytestring
     , classy-prelude
+    , containers
     , mtl
     , postgresql-simple
     , postgresql-simple-migration
@@ -56,6 +57,7 @@ library
     , servant-server
     , template-haskell
     , text
+    , unordered-containers
     , utf8-string
     , uuid
     , validation
@@ -77,6 +79,7 @@ executable ride-servant-exe
     , bcrypt
     , bytestring
     , classy-prelude
+    , containers
     , mtl
     , postgresql-simple
     , postgresql-simple-migration
@@ -87,6 +90,7 @@ executable ride-servant-exe
     , servant-server
     , template-haskell
     , text
+    , unordered-containers
     , utf8-string
     , uuid
     , validation
@@ -109,6 +113,7 @@ test-suite ride-servant-test
     , bcrypt
     , bytestring
     , classy-prelude
+    , containers
     , mtl
     , postgresql-simple
     , postgresql-simple-migration
@@ -119,6 +124,7 @@ test-suite ride-servant-test
     , servant-server
     , template-haskell
     , text
+    , unordered-containers
     , utf8-string
     , uuid
     , validation

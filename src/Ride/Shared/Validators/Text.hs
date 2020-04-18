@@ -3,7 +3,7 @@ module Ride.Shared.Validators.Text
 , pattern
 , minLength
 , validateText
-, TextError
+, TextError (..)
 ) where
 
 data TextError

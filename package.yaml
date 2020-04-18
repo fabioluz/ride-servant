@@ -28,6 +28,8 @@ dependencies:
 - uuid
 - bcrypt
 - mtl
+- containers
+- unordered-containers
 - aeson
 - validation
 - profunctors

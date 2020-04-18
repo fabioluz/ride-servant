@@ -1,7 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE ConstraintKinds   #-}
-{-# LANGUAGE DeriveAnyClass    #-}
 
 module Ride.DB where
 
@@ -9,7 +8,7 @@ import Control.Monad.Except (MonadError)
 import Data.Pool (Pool, createPool, withResource, destroyAllResources)
 import Database.PostgreSQL.Simple (Connection, connectPostgreSQL, close, withTransaction)
 import Database.PostgreSQL.Simple.Migration (MigrationContext (..), MigrationCommand (..), runMigration)
-import Ride.App (Env (..))
+import Ride.App (Config (..))
 
 -- | Pool
 
@@ -33,20 +32,15 @@ migrateDb pool = withResource pool migrate
 class HasPool a where
   getPool :: a -> Pool Connection
 
-instance HasPool Env where
-  getPool = envPool
+instance HasPool Config where
+  getPool = configPool
 
-type WithDb env m = (MonadIO m, MonadReader env m, HasPool env)
+type WithDb cfg m = (MonadIO m, MonadReader cfg m, HasPool cfg)
 
--- | Utilities
-
-data DbError = DbError String
-  deriving (Show, Exception)
-
-withConn :: (WithDb env m) => (Connection -> IO a) -> m a
+withConn :: (WithDb cfg m) => (Connection -> IO a) -> m a
 withConn action = do
-  env <- ask
-  liftIO $ withResource (getPool env) action
+  config <- ask
+  liftIO $ withResource (getPool config) action
 
--- withTran :: WithDb env e m => (Connection -> IO a) -> m a
+-- withTran :: WithDb Config e m => (Connection -> IO a) -> m a
 -- withTran action = withConn $ \conn -> withTransaction conn (action conn)

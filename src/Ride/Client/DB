@@ -11,12 +11,12 @@ module Ride.Client.DB where
 -- import Ride.User.Class (User (..))
 -- import Ride.Shared.Types (Id (..))
 
--- getClients :: (WithDb env m) => m [Client]
+-- getClients :: (WithDb Config m) => m [Client]
 -- getClients = withConn $ \conn -> query_ conn sql
 --   where
 --     sql = "SELECT client_id, name FROM clients"
 
--- insertClient :: (WithDb env e m) => Client -> User -> m Int64
+-- insertClient :: (WithDb Config e m) => Client -> User -> m Int64
 -- insertClient client user = withTran $ \conn -> do
 --   a <- execute conn clientSql $ clientValues client
 --   b <- execute conn userSql $ userValues user
