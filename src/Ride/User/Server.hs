@@ -21,13 +21,16 @@ import Servant
   , err400
   )
 import Ride.App (AppT, App, logInfo)
+import Ride.Error (orThrow422, validationError)
 import Ride.Shared.Types (Id (..))
 import Ride.User.Class
   ( CreateUser (..)
   , UpdateUser (..)
   , User
   , createUser
+  , createUserPassword
   , updateUser
+  , newUserId
   )
 
 import qualified Ride.User.DB as DB
@@ -47,13 +50,15 @@ getUsers = DB.getAllUsers
 
 postUser :: MonadIO m => CreateUser -> AppT m User
 postUser input = do
-  (user, password) <- createUser input
+  userId   <- newUserId
+  user     <- createUser userId input `orThrow422` validationError
+  password <- createUserPassword input
   DB.insertUser user password
   pure user
 
 putUser :: MonadIO m => Id User -> UpdateUser -> AppT m ()
 putUser userId input = do
-  user <- updateUser userId input
+  user <- updateUser userId input `orThrow422` validationError
   DB.updateUser user
   pure ()
   

@@ -13,11 +13,10 @@ import Servant
   , hoistServer
   )
 import Ride.App (AppT (..), Config)
-import Ride.Error (errorHandlers)
 import Ride.User.Server (UserAPI, userAPI, userServer)
 
 runApp :: Config -> AppT IO a -> IO a
-runApp cfg app = runReaderT (unApp app) cfg `catches` (errorHandlers cfg)
+runApp cfg app = runReaderT (unApp app) cfg
 
 convertApp :: Config -> AppT IO a -> Handler a
 convertApp cfg app = Handler . ExceptT . try $ runApp cfg app

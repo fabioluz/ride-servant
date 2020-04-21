@@ -3,16 +3,24 @@
 
 module Ride.User.DB where
 
-import Database.PostgreSQL.Simple (execute, query_)
+import Database.PostgreSQL.Simple (Only (..), execute, query, query_, fromOnly)
 import Database.PostgreSQL.Simple.FromRow (FromRow, fromRow, field)
 import Ride.DB (WithDb, withConn)
-import Ride.Shared.Types (Password (..))
+import Ride.Shared.Types (Id, Password (..))
 import Ride.User.Class (User (..), ValidUpdateUser (..))
 
 getAllUsers :: WithDb cfg m => m [User]
 getAllUsers = withConn $ \conn -> query_ conn sql
   where
-    sql = "SELECT user_id, email, '', name FROM users;"
+    sql = "SELECT user_id, email, name FROM users"
+
+getUserPassword :: WithDb cfg m => Id User -> m (Maybe Password)
+getUserPassword userId = withConn $ \conn -> do
+  results <- query conn sql args
+  pure $ Password . fromOnly . head <$> fromNullable results
+  where
+    sql = "SELECT password FROM users WHERE user_id = ?"
+    args = Only userId
 
 insertUser :: WithDb cfg m => User -> Password -> m Int64
 insertUser User {..} (Password password) = withConn $ \conn ->
@@ -26,5 +34,5 @@ updateUser :: WithDb cfg m => User -> m Int64
 updateUser User {..} = withConn $ \conn ->
   execute conn sql args
   where
-    sql = "UPDATE users SET email = ?, name = ? WHERE userId = ?"
+    sql = "UPDATE users SET email = ?, name = ? WHERE user_id = ?"
     args = (email, name, userId) 

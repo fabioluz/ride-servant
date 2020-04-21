@@ -9,10 +9,11 @@ module Ride.Shared.Types
 , EmailError
 , createEmail
 , Password (..)
+, PasswordError
 , createPassword 
 ) where
 
-import Crypto.BCrypt (hashPasswordUsingPolicy, slowerBcryptHashingPolicy)
+import Crypto.BCrypt (hashPasswordUsingPolicy, validatePassword, slowerBcryptHashingPolicy)
 import Data.Aeson (ToJSON, FromJSON)
 import Data.UUID (UUID, toString)
 import Data.UUID.V4 (nextRandom)
@@ -20,7 +21,7 @@ import Data.Validation (toEither)
 import Database.PostgreSQL.Simple.FromField (FromField)
 import Database.PostgreSQL.Simple.ToField (ToField)
 import Servant (FromHttpApiData)
-import Ride.Shared.Validators.Text (TextError (..), validateText, notEmpty, pattern)
+import Ride.Shared.Validators.Text (TextError, validateText, notEmpty, pattern)
 
 -- | Id
 
@@ -32,7 +33,7 @@ newId = Id <$> nextRandom
 
 -- | Email
 
-newtype Email = Email { unEmail :: Text }
+newtype Email = Email Text
   deriving (Show, Generic, FromJSON, ToJSON, FromField, ToField)
 
 newtype EmailError = EmailError TextError
@@ -43,15 +44,17 @@ createEmail = bimap EmailError Email . validateText [ notEmpty, pattern "p" ]
 
 -- | Password
 
-newtype Password = Password { unPassword :: Text }
+newtype Password = Password Text
   deriving (Show, Generic, FromField, ToField)
 
 data PasswordError = PasswordError
   deriving (Show)
 
 createPassword :: Text -> IO (Either PasswordError Password)
-createPassword password = do
-  hashResult <- hashPassword $ encodeUtf8 password
-  pure $ maybe (Left PasswordError) (Right . Password . decodeUtf8) hashResult
+createPassword = pure . toPasswordOrError <=< hashPassword . encodeUtf8
   where 
     hashPassword = hashPasswordUsingPolicy slowerBcryptHashingPolicy
+    toPasswordOrError = maybe (Left PasswordError) (Right . Password . decodeUtf8)
+
+checkPassword :: Text -> Text -> Bool
+checkPassword hashed plain = validatePassword (encodeUtf8 hashed) (encodeUtf8 plain)

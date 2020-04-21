@@ -37,7 +37,7 @@ instance HasPool Config where
 
 type WithDb cfg m = (MonadIO m, MonadReader cfg m, HasPool cfg)
 
-withConn :: (WithDb cfg m) => (Connection -> IO a) -> m a
+withConn :: WithDb cfg m => (Connection -> IO a) -> m a
 withConn action = do
   config <- ask
   liftIO $ withResource (getPool config) action

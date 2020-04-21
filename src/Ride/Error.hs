@@ -4,8 +4,11 @@
 
 module Ride.Error
 ( GeneralError (..)
+, generalError
 , ValidationError (..)
-, errorHandlers
+, validationError
+, orThrow422
+, orThrow500
 ) where
 
 import ClassyPrelude (Handler (..))
@@ -37,18 +40,20 @@ newtype GeneralError = GeneralError Text
 
 instance Exception GeneralError
 
-throw500 :: Exception e => Env -> e -> IO a
-throw500 env ex = case env of
-  Development -> throwIO $ err500 { errBody = encodeUtf8 $ tlshow ex }
-  Production  -> throwIO $ err500 { errBody = "An error has occurred." }
- 
-errorHandlers :: Config -> [Handler IO a]
-errorHandlers cfg = 
-  let env = configEnv cfg in
-  [ Handler $ \(ex :: SqlError)        -> throw500 env ex
-  , Handler $ \(ex :: FormatError)     -> throw500 env ex
-  , Handler $ \(ex :: QueryError)      -> throw500 env ex
-  , Handler $ \(ex :: ResultError)     -> throw500 env ex
-  , Handler $ \(ex :: GeneralError)    -> throw500 env ex
-  , Handler $ \(ex :: ValidationError) -> throwIO $ err422 { errBody = encode ex }
-  ]
+orThrow422 :: MonadIO m => Either e a -> (e -> ValidationError) -> m a
+orThrow422 e f = either (throw422 . f) pure e
+  where
+    throw422 (ValidationError errors) = throwIO $ err422
+      { errBody = encode $ toNullable errors }
+
+orThrow500 :: (MonadIO m) => Either e a -> (e -> GeneralError) -> m a
+orThrow500 e f = either (throw500 . f) pure e
+  where
+    throw500 (GeneralError error) = throwIO $ err500
+      { errBody = encodeUtf8 $ tlshow error }
+
+validationError :: NonNull (HashMap Text Text) -> ValidationError
+validationError = ValidationError
+
+generalError :: (Show e) => e -> GeneralError
+generalError = GeneralError . tshow

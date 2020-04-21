@@ -36,6 +36,8 @@ dependencies:
 - template-haskell
 - servant
 - servant-server
+- servant-auth
+- servant-auth-server
 - wai
 - wai-logger
 - warp

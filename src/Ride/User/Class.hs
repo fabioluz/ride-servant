@@ -3,7 +3,6 @@
 {-# LANGUAGE DeriveAnyClass        #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE NamedFieldPuns        #-}
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE RecordWildCards       #-}
 
@@ -14,19 +13,22 @@ module Ride.User.Class
 , UpdateUser (..)
 , ValidUpdateUser (..)
 , createUser
+, createUserPassword
 , updateUser
+, newUserId
 ) where
 
 import Control.Monad.Except (throwError)
 import Data.Aeson (Value, FromJSON, ToJSON, toJSON, encode, object, (.=))
-import Data.Validation (Validation (..), liftError, validation)
+import Data.Validation (Validation (..), liftError, validation, toEither)
 import Database.PostgreSQL.Simple.FromRow (FromRow, fromRow, field)
-import Ride.Error (GeneralError (..), ValidationError (..))
+import Ride.Error (generalError)
 import Ride.Shared.Types 
   ( Id 
   , Email
   , EmailError
   , Password
+  , PasswordError
   , newId
   , createEmail
   , createPassword
@@ -57,11 +59,11 @@ data CreateUser = CreateUser
   } deriving (Show, Generic, FromJSON)
 
 -- | Represents a validated input for creating an user
--- | It serves as a base for generating Password and Id User, which require IO
+-- | It serves as a base for generating Password, which requires IO
 data ValidCreateUser = ValidCreateUser
-  { createUserEmail    :: Email
-  , createUserPassword :: Text
-  , createUserName     :: Text
+  { email    :: Email
+  , password :: Text
+  , name     :: Text
   }
 
 -- | Represents the input format for updating an user from an HTTP request.
@@ -72,69 +74,64 @@ data UpdateUser = UpdateUser
 
 -- | Represents a validated input for updating an user.
 data ValidUpdateUser = ValidUpdateUser
-  { updateUserEmail :: Email
-  , updateUserName  :: Text
+  { email :: Email
+  , name  :: Text
   }
 
--- | Validates the user input, hashes the password, generates a new UUID and returns an User entity and Password.
--- | If any of the steps fail, it throws an error which will be turned into an HTTP 422/500 response by Servant.
-createUser :: MonadIO m => CreateUser -> m (User, Password)
-createUser input = do
-  validUser <- validateCreateUser input
-  password  <- hashPassword $ createUserPassword validUser
-  userId    <- genNewId
-  let email = createUserEmail validUser
-      name  = createUserName validUser
-      user  = User {..}
-  pure $ (User {..}, password)
+-- | Represents the input format for updating users password from an HTTP request
+data UpdateUserPassword = UpdateUserPassword
+  { currentPassword :: Text
+  , newPassword     :: Text
+  } deriving (Show, Generic, FromJSON)
 
--- | Validates the user input and returns an User entity.
--- | If any of the steps fail, it throws an error which will be turned into an HTTP 422/500 response by Servant
-updateUser :: MonadIO m => Id User -> UpdateUser -> m User
-updateUser userId input = do
-  validUser <- validateUpdateUser input
-  let email = updateUserEmail validUser
-      name  = updateUserName validUser
-  pure $ User {..}
+-- | Validates the create user input and returns either UserError or User entity.
+createUser :: Id User -> CreateUser -> Either UserError User
+createUser userId = second toUser . validateCreateUser
+  where
+    toUser ValidCreateUser {..} = User {..}
 
--- | Hashes the password using BCrypt. Throws an GeneralError in case the hashing fails (if possible?) 
-hashPassword :: MonadIO m => Text -> m Password
-hashPassword password = do
-  hashResult <- liftIO $ createPassword password
-  either (throwIO . generalError) pure hashResult
+-- | Validates the update user input and returns either UserError or User entity.
+updateUser :: Id User -> UpdateUser -> Either UserError User
+updateUser userId = second toUser . validateUpdateUser
+  where
+    toUser ValidUpdateUser {..} = User {..}
+
+-- | Creates a bcrypt hashed password from create user input.
+createUserPassword :: MonadIO m => CreateUser -> m Password
+createUserPassword = passwordOrThrow <=< liftIO . createPassword . getPassword
+  where
+    getPassword = password :: CreateUser -> Text
+    passwordOrThrow = either (throwIO . generalError . tshow) pure
 
 -- | Generates a new UUID for User
-genNewId :: MonadIO m => m (Id User)
-genNewId = liftIO newId
+newUserId :: MonadIO m => m (Id User)
+newUserId = liftIO newId
 
 -- |
 -- | Validation 
 -- |
 
--- | Validates the user input and returns ValidCreateUser. Throws ValidationError if validation fails.
--- | ValidationError will be turned into HTTP 422 response by Servant.
--- | HashedPassword and UserId cannot be provided at this stage.
-validateCreateUser :: MonadIO m => CreateUser -> m ValidCreateUser
-validateCreateUser = validation (throwIO . validationError) pure . validate
+-- | Validates the user input and returns ValidCreateUser.
+validateCreateUser :: CreateUser -> Either UserError ValidCreateUser
+validateCreateUser = toEither . validate
   where
     -- | Validates CreateUser and collects all the errors by using Applicative Validation.
     validate :: CreateUser -> Validation UserError ValidCreateUser
     validate CreateUser {..} = do
-      createUserEmail    <- validateEmail email 
-      createUserPassword <- validatePassword password
-      createUserName     <- validateName name
+      email    <- validateEmail email 
+      password <- validatePassword password
+      name     <- validateName name
       pure ValidCreateUser {..}
 
--- | Validates the user input and returns ValidUpdateUserInput. Throws ValidationError if validation fails.
--- | ValidationError will be turned into HTTP 422 response by Servant.
-validateUpdateUser :: MonadIO m => UpdateUser -> m ValidUpdateUser
-validateUpdateUser = validation (throwIO . validationError) pure . validate
+-- | Validates the user input and returns ValidUpdateUserInput.
+validateUpdateUser :: UpdateUser -> Either UserError ValidUpdateUser
+validateUpdateUser = toEither . validate
   where
     -- | Validates UpdateUserInput and collects all the errors by using Applicative Validation.
     validate :: UpdateUser -> Validation UserError ValidUpdateUser
     validate UpdateUser {..} = do
-      updateUserEmail <- validateEmail email 
-      updateUserName  <- validateName name
+      email <- validateEmail email 
+      name  <- validateName name
       pure ValidUpdateUser {..}
 
 -- | Validates the email by calling Email's smart constructor and then maps the result to ValidaitonUser.
@@ -164,13 +161,4 @@ passwordError = createUserError "password" . tshow
 
 nameError :: TextError -> UserError
 nameError = createUserError "name" . tshow
-
--- | Converts collection of UserError to ValidationError
-validationError :: UserError -> ValidationError 
-validationError = ValidationError
-
--- | Constructs AppError
-generalError :: Show a => a -> GeneralError
-generalError = GeneralError . tshow 
-
   

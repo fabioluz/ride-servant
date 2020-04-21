@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 907973cb0f11a8d24421b833a42273e210a77815379f72e12782c87eabfd4520
+-- hash: f160ef4019b9e3c9c817d3687076a29e5ef6f373cf798369c134e317f87adace
 
 name:           ride-servant
 version:        0.1.0.0
@@ -29,6 +29,8 @@ library
       Lib
       Prelude
       Ride.App
+      Ride.Auth.Class
+      Ride.Auth.Server
       Ride.DB
       Ride.Error
       Ride.Server
@@ -54,6 +56,8 @@ library
     , profunctors
     , resource-pool
     , servant
+    , servant-auth
+    , servant-auth-server
     , servant-server
     , template-haskell
     , text
@@ -87,6 +91,8 @@ executable ride-servant-exe
     , resource-pool
     , ride-servant
     , servant
+    , servant-auth
+    , servant-auth-server
     , servant-server
     , template-haskell
     , text
@@ -121,6 +127,8 @@ test-suite ride-servant-test
     , resource-pool
     , ride-servant
     , servant
+    , servant-auth
+    , servant-auth-server
     , servant-server
     , template-haskell
     , text
