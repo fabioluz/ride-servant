@@ -1,11 +1,9 @@
 {-# LANGUAGE DataKinds        #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE NamedFieldPuns   #-}
 {-# LANGUAGE TypeOperators    #-}
 
-module Ride.User.Server where
+module Ride.User.Server (UserAPI, userServer) where
 
-import Data.UUID (UUID)
 import Servant
   ( JSON
   , Capture
@@ -13,14 +11,16 @@ import Servant
   , Post
   , Put
   , PostCreated 
-  , Proxy (..)
   , ReqBody
   , ServerT
   , (:>)
   , (:<|>) (..)
-  , err400
+  , err401
   )
-import Ride.App (AppT, App, logInfo)
+import Servant.Auth.Server (AuthResult (..))
+import Ride.App (AppT, logInfo)
+import Ride.Auth.Class (LoggedInUser (..))
+import Ride.Auth.Server (Authorized)
 import Ride.Error (orThrow422, validationError)
 import Ride.Shared.Types (Id (..))
 import Ride.User.Class
@@ -29,36 +29,53 @@ import Ride.User.Class
   , User
   , createUser
   , createUserPassword
-  , updateUser
   , newUserId
+  , updateUser
   )
 
 import qualified Ride.User.DB as DB
 
-type UserAPI = "users" :> Get '[JSON] [User]
-          :<|> "users" :> ReqBody '[JSON] CreateUser :> PostCreated '[JSON] User
-          :<|> "users" :> Capture "userId" (Id User) :> ReqBody '[JSON] UpdateUser :> Put '[JSON] ()
-
-userAPI :: Proxy UserAPI
-userAPI = Proxy
+type UserAPI = Authorized :> "me" :> Get '[JSON] User
+          :<|> Authorized :> "users" :> Get '[JSON] [User]
+          :<|> Authorized :> "users" :> ReqBody '[JSON] CreateUser :> PostCreated '[JSON] User
+          :<|> Authorized :> Capture "userId" (Id User) :> ReqBody '[JSON] UpdateUser :> Put '[JSON] ()
 
 userServer :: MonadIO m => ServerT UserAPI (AppT m)
-userServer = getUsers :<|> postUser :<|> putUser
+userServer = getMeHandler
+        :<|> getUsersHandler
+        :<|> createUserHandler
+        :<|> updateUserHandler
 
-getUsers :: MonadIO m => AppT m [User]
-getUsers = DB.getAllUsers
+-- withAuth :: MonadIO m => AuthResult LoggedInUser -> (LoggedInUser -> AppT m a) -> AppT m a
+-- withAuth (Authenticated user) f = f user
+-- withAuth _ _                    = throwIO err401
 
-postUser :: MonadIO m => CreateUser -> AppT m User
-postUser input = do
+getMeHandler :: MonadIO m => AuthResult LoggedInUser -> AppT m User
+getMeHandler (Authenticated user) = do
+  userRes <- DB.getUserById $ userId user
+  maybe (throwIO err401) pure userRes
+
+getMeHandler _ = throwIO err401
+
+getUsersHandler :: MonadIO m => AuthResult LoggedInUser -> AppT m [User]
+getUsersHandler (Authenticated _) = DB.getAllUsers
+
+getUsersHandler _ = throwIO err401
+
+createUserHandler :: MonadIO m => AuthResult LoggedInUser -> CreateUser -> AppT m User
+createUserHandler (Authenticated _) input = do
   userId   <- newUserId
   user     <- createUser userId input `orThrow422` validationError
   password <- createUserPassword input
   DB.insertUser user password
   pure user
 
-putUser :: MonadIO m => Id User -> UpdateUser -> AppT m ()
-putUser userId input = do
+createUserHandler _ _ = throwIO err401
+
+updateUserHandler :: MonadIO m => AuthResult LoggedInUser -> Id User -> UpdateUser -> AppT m ()
+updateUserHandler (Authenticated _) userId input = do
   user <- updateUser userId input `orThrow422` validationError
   DB.updateUser user
   pure ()
   
+updateUserHandler _ _ _ = throwIO err401

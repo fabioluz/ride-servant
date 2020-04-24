@@ -14,10 +14,12 @@ module Ride.App
 , Env (..)
 , WithEnv
 , getEnv
+, lookupSetting
 ) where
 
 import Data.Pool (Pool)
 import Database.PostgreSQL.Simple (Connection)
+import System.Environment (lookupEnv)
 
 newtype AppT m a = AppT { unApp :: ReaderT Config m a }
   deriving ( Functor
@@ -52,14 +54,15 @@ type WithLogger cfg m = (MonadIO m, MonadReader cfg m, HasLogger cfg)
 
 logInfo :: (WithLogger cfg m, Show a) => a -> m ()
 logInfo msg = do
-  config <- ask
-  liftIO $ getLogger config $ show msg
+  logger <- asks getLogger
+  liftIO . logger $ show msg
 
 -- |
 -- | Env
 -- |
 
 data Env = Development | Production
+  deriving (Show, Read)
 
 class HasEnv a where
   getEnv :: a -> Env
@@ -68,5 +71,15 @@ instance HasEnv Config where
   getEnv = configEnv
 
 type WithEnv cfg m = (MonadIO m, MonadReader cfg m, HasEnv cfg)
+
+-- |
+-- | Utils
+-- | 
+
+lookupSetting :: Read a => String -> a -> IO a
+lookupSetting env def = do
+  envRes <- lookupEnv env
+  pure $ fromMaybe def $ envRes >>= readMay
+
 
 

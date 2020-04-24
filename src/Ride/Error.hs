@@ -11,17 +11,15 @@ module Ride.Error
 , orThrow500
 ) where
 
-import ClassyPrelude (Handler (..))
-import Data.Aeson (ToJSON, toJSON, object, encode, (.=), Object, Value)
-import Database.PostgreSQL.Simple
-  ( SqlError
-  , FormatError
-  , QueryError
-  , ResultError
+import Data.Aeson
+  ( ToJSON
+  , toJSON
+  , object
+  , encode
+  , (.=)
   )
 import Servant 
-  ( ServerError
-  , err500
+  ( err500
   , err422
   , errBody
   )
@@ -36,7 +34,7 @@ instance ToJSON ValidationError where
 instance Exception ValidationError
 
 newtype GeneralError = GeneralError Text
-  deriving (Show)
+  deriving Show
 
 instance Exception GeneralError
 
@@ -46,7 +44,7 @@ orThrow422 e f = either (throw422 . f) pure e
     throw422 (ValidationError errors) = throwIO $ err422
       { errBody = encode $ toNullable errors }
 
-orThrow500 :: (MonadIO m) => Either e a -> (e -> GeneralError) -> m a
+orThrow500 :: MonadIO m => Either e a -> (e -> GeneralError) -> m a
 orThrow500 e f = either (throw500 . f) pure e
   where
     throw500 (GeneralError error) = throwIO $ err500
@@ -55,5 +53,5 @@ orThrow500 e f = either (throw500 . f) pure e
 validationError :: NonNull (HashMap Text Text) -> ValidationError
 validationError = ValidationError
 
-generalError :: (Show e) => e -> GeneralError
+generalError :: Show e => e -> GeneralError
 generalError = GeneralError . tshow

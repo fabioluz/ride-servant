@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: f160ef4019b9e3c9c817d3687076a29e5ef6f373cf798369c134e317f87adace
+-- hash: ae7bb1f1d3c452caf939b7a02348bd83fbc93790f8c0858ce077c0ebb2897a4d
 
 name:           ride-servant
 version:        0.1.0.0
@@ -53,13 +53,11 @@ library
     , mtl
     , postgresql-simple
     , postgresql-simple-migration
-    , profunctors
     , resource-pool
     , servant
     , servant-auth
     , servant-auth-server
     , servant-server
-    , template-haskell
     , text
     , unordered-containers
     , utf8-string
@@ -87,14 +85,12 @@ executable ride-servant-exe
     , mtl
     , postgresql-simple
     , postgresql-simple-migration
-    , profunctors
     , resource-pool
     , ride-servant
     , servant
     , servant-auth
     , servant-auth-server
     , servant-server
-    , template-haskell
     , text
     , unordered-containers
     , utf8-string
@@ -123,14 +119,12 @@ test-suite ride-servant-test
     , mtl
     , postgresql-simple
     , postgresql-simple-migration
-    , profunctors
     , resource-pool
     , ride-servant
     , servant
     , servant-auth
     , servant-auth-server
     , servant-server
-    , template-haskell
     , text
     , unordered-containers
     , utf8-string

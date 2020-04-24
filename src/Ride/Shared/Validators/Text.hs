@@ -17,9 +17,9 @@ validateText :: [(Text -> Either TextError Text)] -> Text -> Either TextError Te
 validateText xs a = foldl' (>>=) (Right a) xs
 
 validate :: e -> (a -> Bool) -> a -> Either e a
-validate e f a = if f a 
-                 then Right a
-                 else Left e
+validate e f a
+  | f a       = Right a
+  | otherwise = Left e
 
 notEmpty :: Text -> Either TextError Text
 notEmpty = validate NotEmptyError (not . null)

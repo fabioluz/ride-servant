@@ -32,8 +32,6 @@ dependencies:
 - unordered-containers
 - aeson
 - validation
-- profunctors
-- template-haskell
 - servant
 - servant-server
 - servant-auth

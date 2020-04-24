@@ -8,6 +8,7 @@
 
 module Ride.User.Class
 ( User (..)
+, UserWithPassword (..)
 , UserError (..)
 , CreateUser (..)
 , UpdateUser (..)
@@ -46,10 +47,19 @@ import qualified Data.HashMap.Strict as HM
 -- | This type does not contain password information.
 -- | It is used for all user operations.
 data User = User 
+  { userId :: Id User
+  , email  :: Email
+  , name   :: Text
+  } deriving (Show, Generic, ToJSON, FromRow)
+
+-- | Represents the User entity with Password
+-- | It should only be used for authentication.
+data UserWithPassword = UserWithPassword
   { userId   :: Id User
   , email    :: Email
+  , password :: Password
   , name     :: Text
-  } deriving (Show, Generic, ToJSON, FromRow)
+  } deriving (Show, Generic, FromRow)
 
 -- | Represents the input format for creating an user from an HTTP request.
 data CreateUser = CreateUser

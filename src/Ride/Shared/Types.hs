@@ -11,6 +11,7 @@ module Ride.Shared.Types
 , Password (..)
 , PasswordError
 , createPassword 
+, checkPassword
 ) where
 
 import Crypto.BCrypt (hashPasswordUsingPolicy, validatePassword, slowerBcryptHashingPolicy)
@@ -40,7 +41,7 @@ newtype EmailError = EmailError TextError
   deriving (Show)
 
 createEmail :: Text -> Either EmailError Email
-createEmail = bimap EmailError Email . validateText [ notEmpty, pattern "p" ]
+createEmail = bimap EmailError Email . validateText [ notEmpty, pattern "@" ]
 
 -- | Password
 
@@ -56,5 +57,5 @@ createPassword = pure . toPasswordOrError <=< hashPassword . encodeUtf8
     hashPassword = hashPasswordUsingPolicy slowerBcryptHashingPolicy
     toPasswordOrError = maybe (Left PasswordError) (Right . Password . decodeUtf8)
 
-checkPassword :: Text -> Text -> Bool
-checkPassword hashed plain = validatePassword (encodeUtf8 hashed) (encodeUtf8 plain)
+checkPassword :: Password -> Text -> Bool
+checkPassword (Password hash) plain = validatePassword (encodeUtf8 hash) (encodeUtf8 plain)
