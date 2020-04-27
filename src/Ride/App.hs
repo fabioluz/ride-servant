@@ -19,6 +19,7 @@ module Ride.App
 
 import Data.Pool (Pool)
 import Database.PostgreSQL.Simple (Connection)
+import Servant.Auth.Server (ThrowAll, throwAll)
 import System.Environment (lookupEnv)
 
 newtype AppT m a = AppT { unApp :: ReaderT Config m a }
@@ -81,5 +82,11 @@ lookupSetting env def = do
   envRes <- lookupEnv env
   pure $ fromMaybe def $ envRes >>= readMay
 
+-- |
+-- | Servant Configuration
+-- |
+
+instance MonadIO m => ThrowAll (AppT m a) where
+  throwAll = throwIO
 
 

@@ -3,8 +3,7 @@
 {-# LANGUAGE TypeOperators         #-}
 
 module Ride.Auth.Server
-( Authorized
-, AuthResponse
+( AuthResponse
 , AuthAPI
 , authServer
 , loginHandler
@@ -29,9 +28,6 @@ import Ride.DB (WithDb)
 import Ride.Shared.Types (Password, checkPassword)
 import Ride.User.Class (UserWithPassword (..))
 import Ride.User.DB (getUserByEmail)
-
--- Represents the type of a protected API
-type Authorized = Auth '[JWT] LoggedInUser
 
 -- Represets the response type of the login endpoint
 type AuthResponse = Headers '[Header "Set-Cookie" SetCookie, Header "Set-Cookie" SetCookie] NoContent

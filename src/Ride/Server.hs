@@ -15,9 +15,10 @@ import Servant
   , ServerT
   , serveWithContext
   , hoistServerWithContext
+  , (:>)
   , (:<|>) (..)
   )
-import Servant.Auth.Server (AuthResult, CookieSettings, JWTSettings)
+import Servant.Auth.Server (Auth, AuthResult, CookieSettings, JWTSettings, JWT)
 import Ride.App (AppT (..), Config)
 import Ride.Auth.Class (LoggedInUser)
 import Ride.Auth.Server (AuthAPI, authServer)
@@ -28,7 +29,10 @@ type AppContext = '[CookieSettings, JWTSettings]
 proxyContext :: Proxy AppContext
 proxyContext = Proxy
 
-type AppAPI = AuthAPI :<|> UserAPI
+-- Represents the type of a protected API
+type Authorized = Auth '[JWT] LoggedInUser
+
+type AppAPI = AuthAPI :<|> Authorized :> UserAPI
 
 proxyAPI :: Proxy AppAPI
 proxyAPI = Proxy
