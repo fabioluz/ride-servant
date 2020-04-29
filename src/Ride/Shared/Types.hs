@@ -57,5 +57,5 @@ createPassword = pure . toPasswordOrError <=< hashPassword . encodeUtf8
     hashPassword = hashPasswordUsingPolicy slowerBcryptHashingPolicy
     toPasswordOrError = maybe (Left PasswordError) (Right . Password . decodeUtf8)
 
-checkPassword :: Password -> Text -> Bool
-checkPassword (Password hash) plain = validatePassword (encodeUtf8 hash) (encodeUtf8 plain)
+checkPassword :: Text -> Password -> Bool
+checkPassword plain (Password hash) = validatePassword (encodeUtf8 hash) (encodeUtf8 plain)

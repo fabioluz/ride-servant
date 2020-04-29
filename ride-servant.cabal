@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: ae7bb1f1d3c452caf939b7a02348bd83fbc93790f8c0858ce077c0ebb2897a4d
+-- hash: bfdd756c3ce83fe1e4ad7f51e8c9a31f329646b469d6c72c8d92abe87de4ca88
 
 name:           ride-servant
 version:        0.1.0.0
@@ -50,6 +50,7 @@ library
     , bytestring
     , classy-prelude
     , containers
+    , cookie
     , mtl
     , postgresql-simple
     , postgresql-simple-migration
@@ -59,6 +60,8 @@ library
     , servant-auth-server
     , servant-server
     , text
+    , time
+    , transformers
     , unordered-containers
     , utf8-string
     , uuid
@@ -82,6 +85,7 @@ executable ride-servant-exe
     , bytestring
     , classy-prelude
     , containers
+    , cookie
     , mtl
     , postgresql-simple
     , postgresql-simple-migration
@@ -92,6 +96,8 @@ executable ride-servant-exe
     , servant-auth-server
     , servant-server
     , text
+    , time
+    , transformers
     , unordered-containers
     , utf8-string
     , uuid
@@ -116,6 +122,7 @@ test-suite ride-servant-test
     , bytestring
     , classy-prelude
     , containers
+    , cookie
     , mtl
     , postgresql-simple
     , postgresql-simple-migration
@@ -126,6 +133,8 @@ test-suite ride-servant-test
     , servant-auth-server
     , servant-server
     , text
+    , time
+    , transformers
     , unordered-containers
     , utf8-string
     , uuid

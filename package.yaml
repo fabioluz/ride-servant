@@ -26,10 +26,13 @@ dependencies:
 - utf8-string
 - text
 - uuid
+- time
+- cookie
 - bcrypt
 - mtl
 - containers
 - unordered-containers
+- transformers
 - aeson
 - validation
 - servant

@@ -4,6 +4,7 @@
 module Ride.Auth.Class
 ( LoggedInUser (..)
 , Login (..)
+, Token (..)
 ) where
 
 import Data.Aeson (FromJSON, ToJSON)
@@ -16,9 +17,13 @@ newtype LoggedInUser = LoggedInUser
   { userId :: Id User 
   } deriving (Show, Generic, FromJSON, ToJSON, FromJWT, ToJWT)
 
--- | Represents the input format for log the user in the app
+-- | Represents the input format for log the user in the app.
 data Login = Login 
   { email    :: Text
   , password :: Text
   } deriving (Show, Generic, FromJSON, ToJSON)
 
+-- | Represents token result for login.
+newtype Token = Token
+  { token :: Text
+  } deriving (Show, Generic, ToJSON)
