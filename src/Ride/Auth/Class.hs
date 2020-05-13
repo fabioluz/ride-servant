@@ -17,7 +17,7 @@ newtype LoggedInUser = LoggedInUser
   { userId :: Id User 
   } deriving (Show, Generic, FromJSON, ToJSON, FromJWT, ToJWT)
 
--- | Represents the input format for log the user in the app.
+-- | Represents the input format for login in the app.
 data Login = Login 
   { email    :: Text
   , password :: Text

@@ -21,7 +21,7 @@ import Ride.App (Config (..), lookupSetting)
 getConnString :: IO ByteString
 getConnString = lookupSetting "PG_CONN_STR" defConnStr
   where
-    defConnStr = "postgres://postgres:102030@localhost:5432/ride"
+    defConnStr = "postgres://postgres:1234@localhost:5432/ridedb"
 
 acquirePool :: IO (Pool Connection)
 acquirePool = do

@@ -8,21 +8,16 @@
 
 module Ride.User.Class
 ( User (..)
-, UserWithPassword (..)
-, UserError (..)
-, CreateUser (..)
-, UpdateUser (..)
-, ValidUpdateUser (..)
-, createUser
-, createUserPassword
-, updateUser
 , newUserId
+, CreateUser (..)
+, createUser
+, UserWithPassword (..)
+, createUserPassword
+, UpdateUser (..)
+, updateUser
 ) where
 
-import Control.Monad.Except (throwError)
-import Data.Aeson (Value, FromJSON, ToJSON, toJSON, encode, object, (.=))
 import Data.Validation (Validation (..), liftError, validation, toEither)
-import Database.PostgreSQL.Simple.FromRow (FromRow, fromRow, field)
 import Ride.Error (generalError)
 import Ride.Shared.Types 
   ( Id 
@@ -61,6 +56,12 @@ data UserWithPassword = UserWithPassword
   , name     :: Text
   } deriving (Show, Generic, FromRow)
 
+
+
+-- |
+-- | Create User
+-- |
+
 -- | Represents the input format for creating an user from an HTTP request.
 data CreateUser = CreateUser
   { email    :: Text
@@ -76,6 +77,16 @@ data ValidCreateUser = ValidCreateUser
   , name     :: Text
   }
 
+-- | Validates the create user input and returns either UserError or User entity.
+createUser :: Id User -> CreateUser -> Either UserError User
+createUser userId = second toUser . validateCreateUser
+  where
+    toUser ValidCreateUser {..} = User {..}
+
+-- |
+-- | Update User
+-- |
+
 -- | Represents the input format for updating an user from an HTTP request.
 data UpdateUser = UpdateUser
   { email :: Text
@@ -88,23 +99,15 @@ data ValidUpdateUser = ValidUpdateUser
   , name  :: Text
   }
 
--- | Represents the input format for updating users password from an HTTP request
-data UpdateUserPassword = UpdateUserPassword
-  { currentPassword :: Text
-  , newPassword     :: Text
-  } deriving (Show, Generic, FromJSON)
-
--- | Validates the create user input and returns either UserError or User entity.
-createUser :: Id User -> CreateUser -> Either UserError User
-createUser userId = second toUser . validateCreateUser
-  where
-    toUser ValidCreateUser {..} = User {..}
-
 -- | Validates the update user input and returns either UserError or User entity.
 updateUser :: Id User -> UpdateUser -> Either UserError User
 updateUser userId = second toUser . validateUpdateUser
   where
     toUser ValidUpdateUser {..} = User {..}
+
+-- |
+-- | Password
+-- |
 
 -- | Creates a bcrypt hashed password from create user input.
 createUserPassword :: MonadIO m => CreateUser -> m Password
@@ -112,6 +115,10 @@ createUserPassword = passwordOrThrow <=< liftIO . createPassword . getPassword
   where
     getPassword = password :: CreateUser -> Text
     passwordOrThrow = either (throwIO . generalError . tshow) pure
+
+-- |
+-- | Id
+-- |
 
 -- | Generates a new UUID for User
 newUserId :: MonadIO m => m (Id User)

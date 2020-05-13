@@ -3,27 +3,13 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Ride.Error
-( GeneralError (..)
-, generalError
-, ValidationError (..)
+( generalError
 , validationError
-, orThrow422
-, orThrow500
+, orThrow
 ) where
 
-import Data.Aeson
-  ( ToJSON
-  , toJSON
-  , object
-  , encode
-  , (.=)
-  )
-import Servant 
-  ( err500
-  , err422
-  , errBody
-  )
-import Ride.App (Config (..), Env (..))
+import Data.Aeson (toJSON, object, encode, (.=))
+import Servant (ServerError, err500, err422, errBody)
 
 newtype ValidationError = ValidationError (NonNull (HashMap Text Text))
   deriving Show
@@ -38,20 +24,13 @@ newtype GeneralError = GeneralError Text
 
 instance Exception GeneralError
 
-orThrow422 :: MonadIO m => Either e a -> (e -> ValidationError) -> m a
-orThrow422 e f = either (throw422 . f) pure e
-  where
-    throw422 (ValidationError errors) = throwIO $ err422
-      { errBody = encode $ toNullable errors }
+orThrow :: MonadIO m => Either e a -> (e -> ServerError) -> m a
+orThrow e f = either (throwIO . f) pure e
 
-orThrow500 :: MonadIO m => Either e a -> (e -> GeneralError) -> m a
-orThrow500 e f = either (throw500 . f) pure e
-  where
-    throw500 (GeneralError error) = throwIO $ err500
-      { errBody = encodeUtf8 $ tlshow error }
+validationError :: NonNull (HashMap Text Text) -> ServerError
+validationError errors = err422
+  { errBody = encode . ValidationError $ errors }
 
-validationError :: NonNull (HashMap Text Text) -> ValidationError
-validationError = ValidationError
-
-generalError :: Show e => e -> GeneralError
-generalError = GeneralError . tshow
+generalError :: Show e => e -> ServerError
+generalError error = err500
+  { errBody = encodeUtf8 $ tlshow error }

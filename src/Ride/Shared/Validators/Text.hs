@@ -1,6 +1,6 @@
 module Ride.Shared.Validators.Text
 ( notEmpty
-, pattern
+, matches
 , minLength
 , validateText
 , TextError
@@ -10,10 +10,10 @@ data TextError
   = NotEmptyError
   | MaxLenthError Int
   | MinLengthError Int
-  | PatternError Text
+  | MatchesError Text
   deriving Show
 
-validateText :: [(Text -> Either TextError Text)] -> Text -> Either TextError Text
+validateText :: [Text -> Either TextError Text] -> Text -> Either TextError Text
 validateText xs a = foldl' (>>=) (Right a) xs
 
 validate :: e -> (a -> Bool) -> a -> Either e a
@@ -28,5 +28,5 @@ minLength :: Int -> Text -> Either TextError Text
 minLength n = validate (MinLengthError n) ((<=) n . length)
 
 -- | TODO: replace for Regex
-pattern :: Text -> Text -> Either TextError Text
-pattern p = validate (PatternError p) (isInfixOf p)
+matches :: Text -> Text -> Either TextError Text
+matches p = validate (MatchesError p) (isInfixOf p)

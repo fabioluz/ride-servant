@@ -22,7 +22,7 @@ import Data.Validation (toEither)
 import Database.PostgreSQL.Simple.FromField (FromField)
 import Database.PostgreSQL.Simple.ToField (ToField)
 import Servant (FromHttpApiData)
-import Ride.Shared.Validators.Text (TextError, validateText, notEmpty, pattern)
+import Ride.Shared.Validators.Text (TextError, validateText, notEmpty, matches)
 
 -- | Id
 
@@ -41,7 +41,7 @@ newtype EmailError = EmailError TextError
   deriving (Show)
 
 createEmail :: Text -> Either EmailError Email
-createEmail = bimap EmailError Email . validateText [ notEmpty, pattern "@" ]
+createEmail = bimap EmailError Email . validateText [ notEmpty, matches "@" ]
 
 -- | Password
 
