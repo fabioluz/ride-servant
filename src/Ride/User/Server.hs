@@ -24,12 +24,12 @@ import Ride.Auth.Class (LoggedInUser (..))
 import Ride.Error (orThrow, validationError)
 import Ride.Shared.Types (Id (..))
 import Ride.User.Class
-  ( CreateUser (..)
-  , UpdateUser (..)
-  , User
+  ( User
+  , newUserId
+  , CreateUser (..)
   , createUser
   , createUserPassword
-  , newUserId
+  , UpdateUser (..)
   , updateUser
   )
 
